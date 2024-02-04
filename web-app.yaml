@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels:
+    app: webapp #control plane will look for this name to find the container
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webapp #key to attach it with service
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+        - name: mongo-express
+          image: mongo-express:latest # can use any version
+          ports:
+            - containerPort: 8081
+          env:
+            - name: ME_CONFIG_MONGODB_ADMINUSERNAME # copied from docker
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret #secret kind
+                  key: mongo-user # key in the secret file
+            - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret #secret kind
+                  key: mongo-password # key in the secret file
+            - name: ME_CONFIG_MONGODB_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: mongo-config #secret kind
+                  key: mongo-url # key in the secret file
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  type: NodePort
+  selector:
+    app: webapp
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      nodePort: 30010

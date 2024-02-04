@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  labels:
+    app: mongo #control plane will look for this name to find the container
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo #key to attach it with service
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:latest # can use any version
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME # copied from docker
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret #secret kind
+                  key: mongo-user # key in the secret file
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret #secret kind
+                  key: mongo-password # key in the secret file
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+spec:
+  selector:
+    app: mongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
